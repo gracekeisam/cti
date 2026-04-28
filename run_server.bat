@@ -11,5 +11,5 @@ if not exist "node_modules\" (
 )
 
 echo Starting development server...
-npm run dev
+npm run dev -- --host
 pause
