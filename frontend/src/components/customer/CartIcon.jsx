@@ -10,29 +10,35 @@ export default function CartIcon() {
   if (count === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-fade-in-up">
-      <div className="max-w-lg mx-auto">
+    <div className="floating-cart">
+      <div className="floating-cart-inner">
         <button
           id="floating-cart-btn"
           onClick={() => navigate(`/table/${tableId}/cart`)}
-          className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-2xl px-6 py-4 flex items-center justify-between shadow-xl shadow-orange-200/50 transition-all duration-300 active:scale-[0.98]"
+          className="floating-cart-btn"
         >
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ position: 'relative' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
               </svg>
-              <span className="absolute -top-2 -right-2 w-5 h-5 bg-white text-orange-600 text-xs font-bold rounded-full flex items-center justify-center">
+              <span style={{
+                position: 'absolute', top: -8, right: -8,
+                width: 20, height: 20, borderRadius: '50%',
+                background: '#FFFFFF', color: '#F97316',
+                fontSize: 11, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
                 {count}
               </span>
             </div>
-            <span className="font-semibold text-base">
+            <span style={{ fontWeight: 700, fontSize: 15 }}>
               {count} {count === 1 ? 'item' : 'items'}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold">₹{getTotal()}</span>
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18, fontWeight: 800 }}>₹{getTotal()}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </div>

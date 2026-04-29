@@ -1,26 +1,37 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useSocket } from '../../context/SocketContext';
 
 export default function Header() {
   const { tableId } = useParams();
   const { getItemCount } = useCart();
+  const { isConnected } = useSocket();
   const navigate = useNavigate();
   const count = getItemCount();
 
   return (
-    <header className="sticky top-0 z-50 glass-card border-b border-gray-200/60">
-      <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="app-header">
+      <div className="app-header-inner">
         {/* Logo & Table Info */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-md">
-            <span className="text-white text-lg font-bold">C</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: 14,
+            background: 'linear-gradient(135deg, #F97316, #EA580C)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(249,115,22,0.3)',
+          }}>
+            <span style={{ color: '#FFF', fontSize: 20, fontWeight: 800 }}>C</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">
-              CTI Canteen
+            <h1 style={{ fontSize: 17, fontWeight: 800, color: '#1E293B', lineHeight: 1.2 }}>
+              Canteen
             </h1>
-            <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+            <p style={{ fontSize: 12, color: '#64748B', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%',
+                background: isConnected ? '#22C55E' : '#94A3B8',
+                display: 'inline-block',
+              }} />
               Table {tableId}
             </p>
           </div>
@@ -30,23 +41,25 @@ export default function Header() {
         <button
           id="header-cart-btn"
           onClick={() => navigate(`/table/${tableId}/cart`)}
-          className="relative p-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 transition-all duration-200 group"
+          style={{
+            position: 'relative', padding: 10, borderRadius: 14,
+            background: '#FFF7ED', border: '1.5px solid #FED7AA',
+            cursor: 'pointer', transition: 'all 0.2s',
+          }}
         >
-          <svg
-            className="w-6 h-6 text-orange-600 group-hover:scale-110 transition-transform duration-200"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
-            />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
           </svg>
           {count > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-bounce-subtle">
+            <span style={{
+              position: 'absolute', top: -6, right: -6,
+              width: 22, height: 22, borderRadius: '50%',
+              background: '#F97316', color: '#FFF',
+              fontSize: 11, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px solid #FFFFFF',
+              boxShadow: '0 2px 8px rgba(249,115,22,0.4)',
+            }}>
               {count}
             </span>
           )}

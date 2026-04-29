@@ -1,15 +1,30 @@
 @echo off
 echo =========================================
-echo    Starting CTI Canteen Server...
+echo    Starting Canteen System...
 echo =========================================
-cd frontend
+echo.
 
-:: Check if node_modules exists, if not, prompt or install
+:: Start backend server
+echo [1/2] Starting Backend Server...
+cd backend
 if not exist "node_modules\" (
-    echo Installing dependencies first...
+    echo Installing backend dependencies...
     npm install
 )
+start "CTI Backend" cmd /k "node server.js"
+cd ..
 
-echo Starting development server...
+:: Wait for backend to start
+timeout /t 2 /nobreak > nul
+
+:: Start frontend dev server
+echo [2/2] Starting Frontend Server...
+cd frontend
+if not exist "node_modules\" (
+    echo Installing frontend dependencies...
+    npm install
+)
+echo Starting frontend development server...
 npm run dev -- --host
+
 pause

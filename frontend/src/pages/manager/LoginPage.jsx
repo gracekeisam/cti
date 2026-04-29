@@ -16,7 +16,7 @@ export default function LoginPage() {
             Manager Login
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            CTI Canteen Management Portal
+            Canteen Management Portal
           </p>
         </div>
 
@@ -27,7 +27,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-gray-400 mt-6">
-          © 2026 CTI Canteen · Smart Ordering System
+          © 2026 Canteen · Smart Ordering System
         </p>
       </div>
     </div>

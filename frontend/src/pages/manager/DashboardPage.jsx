@@ -1,14 +1,34 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import DashboardHeader from '../../components/manager/DashboardHeader';
 import OrderCard from '../../components/manager/OrderCard';
 import { useOrders } from '../../context/OrderContext';
+import { useNotificationSound } from '../../hooks/useNotificationSound';
 import { ORDER_STATUSES } from '../../data/ordersData';
 
 const filterTabs = ['All', ...ORDER_STATUSES];
 
 export default function DashboardPage() {
-  const { orders } = useOrders();
+  const { orders, loadOrders, loading, error } = useOrders();
+  const playSound = useNotificationSound();
   const [activeFilter, setActiveFilter] = useState('All');
+  const prevOrderCountRef = useRef(orders.length);
+  const ordersTopRef = useRef(null);
+
+  // Load orders on mount
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  // Play sound + auto-scroll on new order
+  useEffect(() => {
+    if (orders.length > prevOrderCountRef.current) {
+      playSound();
+      if (ordersTopRef.current) {
+        ordersTopRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+    prevOrderCountRef.current = orders.length;
+  }, [orders.length, playSound]);
 
   const filteredOrders = useMemo(() => {
     if (activeFilter === 'All') return orders;
@@ -24,30 +44,37 @@ export default function DashboardPage() {
   }, [orders]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
       <DashboardHeader />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      <div className="kitchen-container">
         {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="stats-grid">
           {ORDER_STATUSES.map((status) => {
-            const emojiMap = { Pending: '⏳', Preparing: '👨‍🍳', Ready: '✅', Completed: '🏁' };
-            const colorMap = {
-              Pending: 'from-amber-50 to-amber-100 border-amber-200',
-              Preparing: 'from-blue-50 to-blue-100 border-blue-200',
-              Ready: 'from-green-50 to-green-100 border-green-200',
-              Completed: 'from-gray-50 to-gray-100 border-gray-200',
+            const configMap = {
+              Pending: { emoji: '🔴', bg: '#FEF2F2', border: '#FECACA', color: '#DC2626' },
+              Preparing: { emoji: '🟡', bg: '#FFFBEB', border: '#FDE68A', color: '#D97706' },
+              Ready: { emoji: '🟢', bg: '#F0FDF4', border: '#BBF7D0', color: '#16A34A' },
+              Completed: { emoji: '✅', bg: '#F8FAFC', border: '#E2E8F0', color: '#64748B' },
             };
+            const cfg = configMap[status];
+            const isSelected = activeFilter === status;
+            
             return (
               <div
                 key={status}
-                className={`bg-gradient-to-br ${colorMap[status]} border rounded-2xl p-4 text-center transition-all duration-200 hover:shadow-md`}
+                onClick={() => setActiveFilter(status)}
+                className="stat-card"
+                style={{
+                  background: cfg.bg, borderColor: isSelected ? '#F97316' : cfg.border,
+                  boxShadow: isSelected ? '0 4px 16px rgba(249,115,22,0.15)' : 'none',
+                }}
               >
-                <div className="text-2xl mb-1">{emojiMap[status]}</div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="stat-emoji">{cfg.emoji}</div>
+                <div className="stat-value" style={{ color: cfg.color }}>
                   {counts[status] || 0}
                 </div>
-                <div className="text-xs font-medium text-gray-500 mt-0.5">
+                <div className="stat-label">
                   {status}
                 </div>
               </div>
@@ -56,24 +83,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+        <div className="filter-tabs">
           {filterTabs.map((tab) => (
             <button
               key={tab}
               id={`filter-tab-${tab.toLowerCase()}`}
               onClick={() => setActiveFilter(tab)}
-              className={`
-                px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap
-                transition-all duration-200 border
-                ${
-                  activeFilter === tab
-                    ? 'bg-gray-900 text-white border-gray-900 shadow-md'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }
-              `}
+              className={`filter-tab ${activeFilter === tab ? 'active' : ''}`}
             >
               {tab}
-              <span className={`ml-1.5 text-xs ${activeFilter === tab ? 'text-gray-300' : 'text-gray-400'}`}>
+              <span className="count">
                 {counts[tab] || 0}
               </span>
             </button>
@@ -81,22 +100,41 @@ export default function DashboardPage() {
         </div>
 
         {/* Orders Grid */}
-        {filteredOrders.length === 0 ? (
-          <div className="text-center py-20 animate-fade-in">
-            <div className="text-5xl mb-3">📋</div>
-            <h3 className="font-semibold text-gray-700 mb-1">
-              No orders found
-            </h3>
-            <p className="text-sm text-gray-400">
+        <div ref={ordersTopRef} />
+
+        {loading && orders.length === 0 ? (
+          <div className="empty-state" style={{ paddingTop: 80 }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="animate-spin" style={{ margin: '0 auto 16px' }}>
+              <circle cx="12" cy="12" r="10" stroke="#F97316" strokeWidth="4" opacity="0.25" />
+              <path fill="#F97316" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" opacity="0.75" />
+            </svg>
+            <p className="empty-state-text">Loading orders...</p>
+          </div>
+        ) : error ? (
+          <div className="empty-state" style={{ paddingTop: 80 }}>
+            <div className="empty-state-emoji">⚠️</div>
+            <h3 className="empty-state-title">Failed to load orders</h3>
+            <p className="empty-state-text" style={{ marginBottom: 20 }}>{error}</p>
+            <button onClick={loadOrders} className="btn-primary-lg" style={{ maxWidth: 200, margin: '0 auto' }}>
+              Retry
+            </button>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="empty-state" style={{ paddingTop: 80 }}>
+            <div className="empty-state-emoji">📋</div>
+            <h3 className="empty-state-title">No orders found</h3>
+            <p className="empty-state-text">
               {activeFilter === 'All'
                 ? 'Orders will appear here when customers place them'
                 : `No orders with status "${activeFilter}"`}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
-            {filteredOrders.map((order) => (
-              <OrderCard key={order.id} order={order} />
+          <div className="orders-grid stagger-children">
+            {filteredOrders.map((order, i) => (
+              <div key={order.id} style={{ animationDelay: `${i * 60}ms` }}>
+                <OrderCard order={order} />
+              </div>
             ))}
           </div>
         )}

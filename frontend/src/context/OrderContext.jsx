@@ -1,32 +1,28 @@
-import { createContext, useContext, useReducer, useCallback } from 'react';
-import { initialOrders } from '../data/ordersData';
+import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import * as api from '../services/api';
+import { socket } from '../services/socket';
 
 const OrderContext = createContext(null);
 
-let orderCounter = initialOrders.length + 1;
-
 const orderReducer = (state, action) => {
   switch (action.type) {
+    case 'SET_ORDERS':
+      return { ...state, orders: action.payload, loading: false, error: null };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload, loading: false };
     case 'ADD_ORDER': {
-      const id = `ORD-${String(orderCounter++).padStart(3, '0')}`;
-      const newOrder = {
-        id,
-        tableNumber: action.payload.tableNumber,
-        items: action.payload.items,
-        totalPrice: action.payload.totalPrice,
-        status: 'Pending',
-        timestamp: new Date().toISOString(),
-        isNew: true,
-      };
-      return { ...state, orders: [newOrder, ...state.orders] };
+      // Avoid duplicates
+      const exists = state.orders.find((o) => o.id === action.payload.id);
+      if (exists) return state;
+      return { ...state, orders: [action.payload, ...state.orders] };
     }
-    case 'UPDATE_STATUS':
+    case 'UPDATE_ORDER':
       return {
         ...state,
         orders: state.orders.map((o) =>
-          o.id === action.payload.id
-            ? { ...o, status: action.payload.status, isNew: false }
-            : o
+          o.id === action.payload.id ? { ...action.payload, isNew: false } : o
         ),
       };
     case 'MARK_SEEN':
@@ -43,19 +39,54 @@ const orderReducer = (state, action) => {
 
 export function OrderProvider({ children }) {
   const [state, dispatch] = useReducer(orderReducer, {
-    orders: initialOrders,
+    orders: [],
+    loading: false,
+    error: null,
   });
 
-  const addOrder = useCallback(
-    (order) => dispatch({ type: 'ADD_ORDER', payload: order }),
-    []
-  );
+  // Listen for Socket.IO events
+  useEffect(() => {
+    function onNewOrder(order) {
+      dispatch({ type: 'ADD_ORDER', payload: order });
+    }
 
-  const updateOrderStatus = useCallback(
-    (id, status) =>
-      dispatch({ type: 'UPDATE_STATUS', payload: { id, status } }),
-    []
-  );
+    function onUpdateOrder(order) {
+      dispatch({ type: 'UPDATE_ORDER', payload: order });
+    }
+
+    socket.on('new_order', onNewOrder);
+    socket.on('update_order', onUpdateOrder);
+
+    return () => {
+      socket.off('new_order', onNewOrder);
+      socket.off('update_order', onUpdateOrder);
+    };
+  }, []);
+
+  const loadOrders = useCallback(async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const orders = await api.fetchOrders();
+      dispatch({ type: 'SET_ORDERS', payload: orders });
+    } catch (err) {
+      dispatch({ type: 'SET_ERROR', payload: err.message });
+    }
+  }, []);
+
+  const addOrder = useCallback(async (orderData) => {
+    // POST to backend — backend will emit socket event
+    const newOrder = await api.placeOrder({
+      table: orderData.tableNumber,
+      items: orderData.items,
+    });
+    return newOrder;
+  }, []);
+
+  const updateOrderStatus = useCallback(async (id, status) => {
+    const updated = await api.updateOrderStatus(id, status);
+    // Backend emits socket event — will update via listener
+    return updated;
+  }, []);
 
   const markOrderSeen = useCallback(
     (id) => dispatch({ type: 'MARK_SEEN', payload: id }),
@@ -77,6 +108,9 @@ export function OrderProvider({ children }) {
     <OrderContext.Provider
       value={{
         orders: state.orders,
+        loading: state.loading,
+        error: state.error,
+        loadOrders,
         addOrder,
         updateOrderStatus,
         markOrderSeen,

@@ -1,82 +1,70 @@
-import { useEffect, useState } from 'react';
 import Badge from '../shared/Badge';
 
 const steps = ['Pending', 'Preparing', 'Ready'];
 
 export default function OrderStatus({ order }) {
-  const [currentStatus, setCurrentStatus] = useState(order.status);
-
-  // Simulate status progression for demo
-  useEffect(() => {
-    if (currentStatus === 'Ready' || currentStatus === 'Completed') return;
-
-    const idx = steps.indexOf(currentStatus);
-    if (idx < 0 || idx >= steps.length - 1) return;
-
-    const timer = setTimeout(() => {
-      setCurrentStatus(steps[idx + 1]);
-    }, 15000); // 15 seconds per step
-
-    return () => clearTimeout(timer);
-  }, [currentStatus]);
-
+  const currentStatus = order.status;
   const stepIndex = steps.indexOf(currentStatus);
+  const isCompleted = currentStatus === 'Completed' || currentStatus === 'Ready';
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-semibold text-gray-900">Order Status</h3>
+    <div className="bill-card">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1E293B' }}>Order Status</h3>
         <Badge status={currentStatus} />
       </div>
 
-      {/* Progress Steps */}
-      <div className="relative">
+      <div style={{ position: 'relative' }}>
         {steps.map((step, i) => {
-          const isDone = i <= stepIndex;
-          const isCurrent = i === stepIndex;
+          const isDone = i <= stepIndex || isCompleted;
+          const isCurrent = i === stepIndex && !isCompleted;
+          const descriptions = {
+            Pending: 'Order received by kitchen',
+            Preparing: 'Your food is being prepared',
+            Ready: 'Ready for pickup!',
+          };
 
           return (
-            <div key={step} className="flex items-start gap-4 relative">
-              {/* Connector line */}
+            <div key={step} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, position: 'relative' }}>
+              {/* Connector */}
               {i < steps.length - 1 && (
-                <div
-                  className={`absolute left-[15px] top-[32px] w-0.5 h-10 transition-colors duration-500 ${
-                    i < stepIndex ? 'bg-orange-500' : 'bg-gray-200'
-                  }`}
-                />
+                <div style={{
+                  position: 'absolute', left: 15, top: 32,
+                  width: 2, height: 40,
+                  background: i < stepIndex || isCompleted ? '#F97316' : '#E2E8F0',
+                  transition: 'background 0.5s',
+                }} />
               )}
-
               {/* Circle */}
-              <div
-                className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-500 ${
-                  isDone
-                    ? 'bg-orange-500 text-white shadow-md shadow-orange-200'
-                    : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
-                } ${isCurrent ? 'ring-4 ring-orange-100' : ''}`}
-              >
+              <div style={{
+                position: 'relative', zIndex: 1, width: 32, height: 32,
+                borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: isDone ? '#F97316' : '#F1F5F9',
+                color: isDone ? '#FFF' : '#94A3B8',
+                border: isDone ? 'none' : '2px solid #E2E8F0',
+                boxShadow: isDone ? '0 4px 12px rgba(249,115,22,0.3)' : 'none',
+                outline: isCurrent ? '4px solid rgba(249,115,22,0.15)' : 'none',
+                transition: 'all 0.5s',
+              }}>
                 {isDone ? (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
-                  <span className="text-xs font-bold">{i + 1}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800 }}>{i + 1}</span>
                 )}
               </div>
-
               {/* Label */}
-              <div className="pb-10">
-                <p
-                  className={`font-medium text-sm ${
-                    isDone ? 'text-gray-900' : 'text-gray-400'
-                  }`}
-                >
-                  {step}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {step === 'Pending' && 'Order received by kitchen'}
-                  {step === 'Preparing' && 'Your food is being prepared'}
-                  {step === 'Ready' && 'Ready for pickup!'}
-                </p>
+              <div style={{ paddingBottom: 40 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: isDone ? '#1E293B' : '#94A3B8' }}>{step}</p>
+                <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>{descriptions[step]}</p>
+                {isCurrent && (
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#F97316', animation: 'pulse 2s ease-in-out infinite' }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#F97316' }}>In progress</span>
+                  </div>
+                )}
               </div>
             </div>
           );

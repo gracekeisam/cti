@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useOrders } from '../../context/OrderContext';
@@ -8,116 +9,121 @@ export default function CartPage() {
   const { items, getTotal, clearCart } = useCart();
   const { addOrder } = useOrders();
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (items.length === 0) return;
-
-    const order = {
-      tableNumber: Number(tableId),
-      items: items.map((i) => ({
-        id: i.id,
-        name: i.name,
-        price: i.price,
-        quantity: i.quantity,
-      })),
-      totalPrice: getTotal(),
-    };
-
-    addOrder(order);
-    const orderId = `ORD-${String(Date.now()).slice(-3)}`;
-    clearCart();
-    navigate(`/table/${tableId}/order/${orderId}`);
+    setSubmitting(true);
+    setError(null);
+    try {
+      const newOrder = await addOrder({
+        tableNumber: Number(tableId),
+        items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+      });
+      clearCart();
+      navigate(`/table/${tableId}/order/${newOrder.id}`);
+    } catch (err) {
+      setError(err.message || 'Failed to place order. Please try again.');
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-container">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-card border-b border-gray-200/60">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-          <button
-            id="cart-back-btn"
-            onClick={() => navigate(`/table/${tableId}`)}
-            className="p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200"
-          >
-            <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">Your Cart</h1>
-            <p className="text-xs text-gray-500">
-              Table {tableId} · {items.length} {items.length === 1 ? 'item' : 'items'}
-            </p>
+      <header className="app-header">
+        <div className="app-header-inner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              id="cart-back-btn"
+              onClick={() => navigate(`/table/${tableId}`)}
+              style={{ padding: 8, borderRadius: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h1 style={{ fontSize: 17, fontWeight: 800, color: '#1E293B' }}>Your Cart</h1>
+              <p style={{ fontSize: 12, color: '#94A3B8', fontWeight: 500, marginTop: 1 }}>
+                Table {tableId} · {items.length} {items.length === 1 ? 'item' : 'items'}
+              </p>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <div className="max-w-lg mx-auto px-4 py-6">
+      <div style={{ padding: 20 }}>
         {items.length === 0 ? (
-          <div className="text-center py-20 animate-fade-in">
-            <div className="text-6xl mb-4">🛒</div>
-            <h3 className="font-semibold text-gray-700 text-lg mb-2">
-              Your cart is empty
-            </h3>
-            <p className="text-sm text-gray-400 mb-6">
-              Browse the menu to add delicious items
-            </p>
-            <button
-              onClick={() => navigate(`/table/${tableId}`)}
-              className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-md shadow-orange-200"
-            >
+          <div className="empty-state" style={{ paddingTop: 80 }}>
+            <div className="empty-state-emoji">🛒</div>
+            <h3 className="empty-state-title" style={{ fontSize: 18, marginBottom: 8 }}>Your cart is empty</h3>
+            <p className="empty-state-text" style={{ marginBottom: 24 }}>Browse the menu to add delicious items</p>
+            <button onClick={() => navigate(`/table/${tableId}`)} className="btn-primary-lg" style={{ maxWidth: 200, margin: '0 auto' }}>
               Browse Menu
             </button>
           </div>
         ) : (
           <>
-            <div className="space-y-3 mb-6 stagger-children">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
               {items.map((item) => (
                 <CartItem key={item.id} item={item} />
               ))}
             </div>
 
             {/* Bill Summary */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm animate-fade-in-up mb-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="bill-card" style={{ marginBottom: 20 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1E293B', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
                 </svg>
                 Bill Summary
               </h3>
-
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {items.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-gray-600">
-                      {item.name} × {item.quantity}
-                    </span>
-                    <span className="text-gray-800 font-medium">
-                      ₹{item.price * item.quantity}
-                    </span>
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: '#64748B' }}>{item.name} × {item.quantity}</span>
+                    <span style={{ color: '#1E293B', fontWeight: 600 }}>₹{item.price * item.quantity}</span>
                   </div>
                 ))}
               </div>
-
-              <div className="border-t border-dashed border-gray-200 mt-4 pt-4 flex justify-between items-center">
-                <span className="font-semibold text-gray-900">Total</span>
-                <span className="text-xl font-bold text-orange-600">
-                  ₹{getTotal()}
-                </span>
+              <div style={{ borderTop: '2px dashed #F1F5F9', marginTop: 16, paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, color: '#1E293B', fontSize: 15 }}>Total</span>
+                <span style={{ fontSize: 22, fontWeight: 800, color: '#F97316' }}>₹{getTotal()}</span>
               </div>
             </div>
 
-            {/* Place Order Button */}
-            <button
-              id="place-order-btn"
-              onClick={handlePlaceOrder}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-4 rounded-2xl transition-all duration-200 active:scale-[0.98] shadow-xl shadow-orange-200/50 text-base flex items-center justify-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Place Order · ₹{getTotal()}
+            {/* Error */}
+            {error && (
+              <div style={{
+                marginBottom: 16, background: '#FEF2F2', border: '1.5px solid #FECACA',
+                borderRadius: 14, padding: '12px 16px', fontSize: 13, color: '#DC2626',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span>⚠️</span> {error}
+              </div>
+            )}
+
+            {/* Place Order */}
+            <button id="place-order-btn" onClick={handlePlaceOrder} disabled={submitting} className="btn-primary-lg">
+              {submitting ? (
+                <>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="animate-spin">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
+                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" opacity="0.75" />
+                  </svg>
+                  Placing Order...
+                </>
+              ) : (
+                <>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Place Order · ₹{getTotal()}
+                </>
+              )}
             </button>
           </>
         )}
